@@ -58,8 +58,7 @@ func defaultSender() *httpsender.FakeHTTPSender {
 
 func defaultDeserializer() *serialization.FakeDeserializer[spotifyResponse] {
 	deserializer := &serialization.FakeDeserializer[spotifyResponse]{}
-	response := defaultDeserializedResponse()
-	deserializer.SetResponse(&response)
+	deserializer.SetResponse(defaultDeserializedResponse())
 	return deserializer
 }
 
@@ -115,7 +114,7 @@ func TestGetSongReturnsErrorIfNoSongsFound(t *testing.T) {
 	repository := spotifySongRepository(defaultSender())
 	deserializer := defaultDeserializer()
 	emptyResponse := spotifyResponse{Tracks: spotifyTracks{Songs: []spotifySong{}}}
-	deserializer.SetResponse(&emptyResponse)
+	deserializer.SetResponse(emptyResponse)
 	repository.SetDeserializer(deserializer)
 
 	_, err := repository.GetSong(defaultArtist(), defaultTitle())

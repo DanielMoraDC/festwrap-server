@@ -1,5 +1,7 @@
 package playlist
 
+import "context"
+
 type PlaylistService interface {
-	AddSetlist(playlistId string, artist string)
+	AddSetlist(ctx context.Context, playlistId string, artist string) error
 }

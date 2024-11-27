@@ -111,8 +111,7 @@ func defaultSender() *httpsender.FakeHTTPSender {
 
 func defaultDeserializer() *serialization.FakeDeserializer[spotifyResponse] {
 	deserializer := &serialization.FakeDeserializer[spotifyResponse]{}
-	response := defaultDeserializedResponse()
-	deserializer.SetResponse(&response)
+	deserializer.SetResponse(defaultDeserializedResponse())
 	return deserializer
 }
 
@@ -187,7 +186,7 @@ func TestSearchArtistReturnsEmptyIfNoneFound(t *testing.T) {
 	repository := spotifySongRepository(defaultSender())
 	deserializer := defaultDeserializer()
 	emptyResponse := spotifyResponse{Artists: spotifyArtists{ArtistItems: []spotifyArtist{}}}
-	deserializer.SetResponse(&emptyResponse)
+	deserializer.SetResponse(emptyResponse)
 	repository.SetDeserializer(deserializer)
 
 	artists, _ := repository.SearchArtist(defaultContext(), defaultSearchName(), defaultLimit())

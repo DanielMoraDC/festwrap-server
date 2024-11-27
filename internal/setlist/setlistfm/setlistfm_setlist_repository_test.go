@@ -47,8 +47,7 @@ func defaultSender() *httpsender.FakeHTTPSender {
 
 func defaultDeserializer() serialization.FakeDeserializer[setlistFMResponse] {
 	result := serialization.FakeDeserializer[setlistFMResponse]{}
-	response := deserializedResponse()
-	result.SetResponse(&response)
+	result.SetResponse(deserializedResponse())
 	return result
 }
 
@@ -149,7 +148,7 @@ func TestGetSetlistReturnsErrorOnDeserializationError(t *testing.T) {
 func TestGetSetlistReturnsErrorIfNoSetlistFound(t *testing.T) {
 	repository := setlistRepository(defaultSender())
 	deserializer := defaultDeserializer()
-	emptyResponse := &setlistFMResponse{Body: []setlistFMSetlist{}}
+	emptyResponse := setlistFMResponse{Body: []setlistFMSetlist{}}
 	deserializer.SetResponse(emptyResponse)
 	repository.SetDeserializer(&deserializer)
 

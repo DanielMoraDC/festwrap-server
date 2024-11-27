@@ -1,8 +1,12 @@
 package playlist
 
-import "festwrap/internal/song"
+import (
+	"context"
+	"festwrap/internal/song"
+)
 
 type PlaylistRepository interface {
-	CreatePlaylist(userId string, playlist Playlist) error
-	AddSongs(playlistId string, songs []song.Song) error
+	CreatePlaylist(ctx context.Context, userId string, playlist Playlist) error
+	SearchPlaylist(ctx context.Context, name string, limit int) ([]Playlist, error)
+	AddSongs(ctx context.Context, playlistId string, songs []song.Song) error
 }

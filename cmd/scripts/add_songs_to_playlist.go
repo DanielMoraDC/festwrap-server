@@ -1,11 +1,13 @@
 package scripts
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 
+	types "festwrap/internal"
 	httpclient "festwrap/internal/http/client"
 	httpsender "festwrap/internal/http/sender"
 	"festwrap/internal/playlist"
@@ -36,7 +38,10 @@ func main() {
 		*spotifyAccessToken,
 		&httpSender,
 	)
-	playlistRepository := spotifyPlaylist.NewSpotifyPlaylistRepository(&httpSender, *spotifyAccessToken)
+
+	var tokenKey types.ContextKey = "token"
+	playlistRepository := spotifyPlaylist.NewSpotifyPlaylistRepository(&httpSender)
+	playlistRepository.SetTokenKey(tokenKey)
 	playlistService := playlist.NewConcurrentPlaylistService(
 		&playlistRepository,
 		setlistRepository,
@@ -44,7 +49,9 @@ func main() {
 	)
 	playlistService.SetMinSongs(*minSongsPerSetlist)
 
-	err := playlistService.AddSetlist(*playlistId, *artist)
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, tokenKey, *spotifyAccessToken)
+	err := playlistService.AddSetlist(ctx, *playlistId, *artist)
 	if err != nil {
 		message := fmt.Sprintf("Could not add songs to setlist: %v", err)
 		fmt.Println(message)

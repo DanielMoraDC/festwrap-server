@@ -1,6 +1,7 @@
 package playlist
 
 import (
+	"context"
 	"festwrap/internal/playlist/errors"
 	"festwrap/internal/setlist"
 	"festwrap/internal/song"
@@ -32,7 +33,7 @@ func NewConcurrentPlaylistService(
 	}
 }
 
-func (s *ConcurrentPlaylistService) AddSetlist(playlistId string, artist string) error {
+func (s *ConcurrentPlaylistService) AddSetlist(ctx context.Context, playlistId string, artist string) error {
 	setlist, err := s.setlistRepository.GetSetlist(artist, s.minSongs)
 	if err != nil {
 		return err
@@ -56,7 +57,7 @@ func (s *ConcurrentPlaylistService) AddSetlist(playlistId string, artist string)
 		return errors.NewCannotAddSongsToPlaylistError(message)
 	}
 
-	err = s.playlistRepository.AddSongs(playlistId, songs)
+	err = s.playlistRepository.AddSongs(ctx, playlistId, songs)
 	if err != nil {
 		return err
 	}
