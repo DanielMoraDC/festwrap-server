@@ -34,7 +34,8 @@ func NewConcurrentPlaylistService(
 }
 
 func (s *ConcurrentPlaylistService) CreatePlaylist(ctx context.Context, playlist Playlist) error {
-	return s.playlistRepository.CreatePlaylist(ctx, playlist)
+	_, err := s.playlistRepository.CreatePlaylist(ctx, playlist)
+	return err
 }
 
 func (s *ConcurrentPlaylistService) AddSetlist(ctx context.Context, playlistId string, artist string) error {

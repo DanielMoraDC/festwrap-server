@@ -99,6 +99,14 @@ func defaultSearchedPlaylists() SpotifySearchPlaylistResponse {
 	}
 }
 
+func defaultPlaylistCreationResponse() []byte {
+	return []byte(fmt.Sprintf(`{"id":"%s"}`, defaultPlaylistId()))
+}
+
+func defaultPlaylistCreation() SpotifyCreatePlaylistResponse {
+	return SpotifyCreatePlaylistResponse{Id: defaultPlaylistId()}
+}
+
 func defaultSearchedFilteredPlaylists() []playlist.Playlist {
 	return []playlist.Playlist{
 		{
@@ -124,6 +132,12 @@ func defaultPlaylistSerializer() *serialization.FakeSerializer[SpotifyPlaylist] 
 func defaultPlaylistDeserializer() *serialization.FakeDeserializer[SpotifySearchPlaylistResponse] {
 	deserializer := serialization.FakeDeserializer[SpotifySearchPlaylistResponse]{}
 	deserializer.SetResponse(defaultSearchedPlaylists())
+	return &deserializer
+}
+
+func defaultPlaylistCreationDeserializer() *serialization.FakeDeserializer[SpotifyCreatePlaylistResponse] {
+	deserializer := serialization.FakeDeserializer[SpotifyCreatePlaylistResponse]{}
+	deserializer.SetResponse(defaultPlaylistCreation())
 	return &deserializer
 }
 
@@ -192,6 +206,7 @@ func spotifyPlaylistRepository() SpotifyPlaylistRepository {
 	repository.SetSongSerializer(defaultSongsSerializer())
 	repository.SetPlaylistSerializer(defaultPlaylistSerializer())
 	repository.SetPlaylistDeserializer(defaultPlaylistDeserializer())
+	repository.SetPlaylistCreationDeserializer((defaultPlaylistCreationDeserializer()))
 
 	return repository
 }
@@ -259,7 +274,7 @@ func TestCreatePlaylistReturnsErrorOnPlaylistSerializationError(t *testing.T) {
 	serializer.SetError(errors.New("test playlist error"))
 	repository.SetPlaylistSerializer(serializer)
 
-	err := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
+	_, err := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
 
 	testtools.AssertErrorIsNotNil(t, err)
 }
@@ -273,11 +288,34 @@ func TestCreatePlaylistSendsCreateRequestWithOptions(t *testing.T) {
 	testtools.AssertEqual(t, actual, expectedCreatePlaylistHttpOptions())
 }
 
+func TestCreatePlaylistReturnsErrorOnDeserializationError(t *testing.T) {
+	repository := spotifyPlaylistRepository()
+	deserializer := defaultPlaylistCreationDeserializer()
+	deserializer.SetError(errors.New("test create playlist error"))
+	repository.SetPlaylistCreationDeserializer(deserializer)
+
+	_, err := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
+
+	testtools.AssertErrorIsNotNil(t, err)
+}
+
+func TestCreatePlaylistReturnsIdFromDeserializedResponse(t *testing.T) {
+	repository := spotifyPlaylistRepository()
+	deserialized := defaultPlaylistCreation()
+	deserializer := defaultPlaylistCreationDeserializer()
+	deserializer.SetResponse(deserialized)
+	repository.SetPlaylistCreationDeserializer(deserializer)
+
+	actual, _ := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
+
+	testtools.AssertEqual(t, actual, deserialized.Id)
+}
+
 func TestCreatePlaylistReturnsErrorOnSendError(t *testing.T) {
 	repository := spotifyPlaylistRepository()
 	repository.SetHTTPSender(errorSender())
 
-	err := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
+	_, err := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
 
 	testtools.AssertErrorIsNotNil(t, err)
 }
@@ -333,17 +371,23 @@ func TestAddSongsPlaylistSendsOptionsUsingSerializerIntegration(t *testing.T) {
 	testtools.AssertEqual(t, actual, expectedAddSongsHttpOptions())
 }
 
-func TestCreatePlaylistSendsOptionsUsingSerializerIntegration(t *testing.T) {
+func TestCreatePlaylistSendsOptionsUsingSerializersIntegration(t *testing.T) {
 	testtools.SkipOnShortRun(t)
 
-	serializer := serialization.NewJsonSerializer[SpotifyPlaylist]()
 	repository := spotifyPlaylistRepository()
+	sender := fakeSender()
+	response := defaultPlaylistCreationResponse()
+	sender.SetResponse(&response)
+	repository.SetHTTPSender(sender)
+	serializer := serialization.NewJsonSerializer[SpotifyPlaylist]()
 	repository.SetPlaylistSerializer(&serializer)
+	deserializer := serialization.NewJsonDeserializer[SpotifyCreatePlaylistResponse]()
+	repository.SetPlaylistCreationDeserializer(&deserializer)
 
-	repository.CreatePlaylist(defaultContext(), defaultPlaylist())
+	id, err := repository.CreatePlaylist(defaultContext(), defaultPlaylist())
 
-	actual := repository.GetHTTPSender().(*httpsender.FakeHTTPSender).GetSendArgs()
-	testtools.AssertEqual(t, actual, expectedCreatePlaylistHttpOptions())
+	testtools.AssertErrorIsNil(t, err)
+	testtools.AssertEqual(t, id, defaultPlaylistId())
 }
 
 func TestSearchPlaylistReturnsResultsUsingDeserializerIntegration(t *testing.T) {
@@ -391,7 +435,7 @@ func TestRepositoryMethodsReturnErrorWhenInvalidToken(t *testing.T) {
 			err := repository.AddSongs(ctx, defaultPlaylistId(), defaultSongs())
 			testtools.AssertErrorIsNotNil(t, err)
 
-			err = repository.CreatePlaylist(ctx, defaultPlaylist())
+			_, err = repository.CreatePlaylist(ctx, defaultPlaylist())
 			testtools.AssertErrorIsNotNil(t, err)
 
 			_, err = repository.SearchPlaylist(ctx, defaultPlaylistName(), defaultSearchPlaylistLimit())
@@ -428,7 +472,7 @@ func TestRepositoryMethodsReturnErrorWhenInvalidUserId(t *testing.T) {
 			_, err := repository.SearchPlaylist(ctx, defaultPlaylistName(), defaultSearchPlaylistLimit())
 			testtools.AssertErrorIsNotNil(t, err)
 
-			err = repository.CreatePlaylist(ctx, defaultPlaylist())
+			_, err = repository.CreatePlaylist(ctx, defaultPlaylist())
 			testtools.AssertErrorIsNotNil(t, err)
 		})
 	}

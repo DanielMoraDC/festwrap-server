@@ -27,6 +27,7 @@ type FakePlaylistRepository struct {
 	createPlaylistArgs CreatePlaylistArgs
 	searchPlaylistArgs SearchPlaylistArgs
 	searchedPlaylists  []Playlist
+	createdPlaylistId  string
 	err                error
 }
 
@@ -34,9 +35,9 @@ func NewFakePlaylistRepository() FakePlaylistRepository {
 	return FakePlaylistRepository{searchedPlaylists: []Playlist{}}
 }
 
-func (s *FakePlaylistRepository) CreatePlaylist(ctx context.Context, playlist Playlist) error {
+func (s *FakePlaylistRepository) CreatePlaylist(ctx context.Context, playlist Playlist) (string, error) {
 	s.createPlaylistArgs = CreatePlaylistArgs{Context: ctx, Playlist: playlist}
-	return s.err
+	return s.createdPlaylistId, s.err
 }
 
 func (s *FakePlaylistRepository) SearchPlaylist(
@@ -69,4 +70,8 @@ func (s *FakePlaylistRepository) GetSearchPlaylistArgs() SearchPlaylistArgs {
 
 func (s *FakePlaylistRepository) SetSearchedPlaylists(playlists []Playlist) {
 	s.searchedPlaylists = playlists
+}
+
+func (s *FakePlaylistRepository) SetCreatedPlaylistId(id string) {
+	s.createdPlaylistId = id
 }
